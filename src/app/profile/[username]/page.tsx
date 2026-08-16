@@ -1,3 +1,14 @@
-"use client";
-import { useState } from "react";
-export default function ProfilePage({params}:{params:{username:string}}){const [following,setFollowing]=useState(false); return <div className="product-page"><div className="page-inner"><div className="profile-hero"><div className="profile-avatar">{params.username[0]?.toUpperCase()}</div><div style={{flex:1}}><div className="eyebrow">creator / public profile</div><h2 style={{margin:'8px 0 0',fontSize:34,letterSpacing:'-.05em'}}>{params.username}</h2><p style={{color:'#8b8b84',fontSize:12,maxWidth:500}}>A profile living inside the SnitchGram social graph. Share, connect, and discover.</p><div className="stats"><div><strong>128</strong><span>posts</span></div><div><strong>4.8K</strong><span>followers</span></div><div><strong>391</strong><span>following</span></div></div></div><button className="btn btn-primary" onClick={()=>setFollowing(!following)}>{following?'Following':'Follow'}</button></div><div className="explore-grid" style={{marginTop:22}}>{Array.from({length:9},(_,i)=><div className="tile" key={i}><span>{params.username} / {i+1}</span></div>)}</div></div></div>}
+import ProfileClient from "@/components/profile/ProfileClient";
+
+type ProfilePageProps = {
+  params: Promise<{ username: string }>;
+};
+
+export function generateStaticParams() {
+  return ["snitchgram", "demo", "maya", "zane", "ria"].map((username) => ({ username }));
+}
+
+export default async function ProfilePage({ params }: ProfilePageProps) {
+  const { username } = await params;
+  return <ProfileClient username={username} />;
+}
