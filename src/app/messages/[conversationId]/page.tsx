@@ -1,12 +1,6 @@
 import ConversationClient from "@/components/messages/ConversationClient";
 
-type ConversationPageProps = {
-  params: Promise<{ conversationId: string }>;
-};
-
-export function generateStaticParams() {
-  return ["1", "2", "3", "4", "demo"].map((conversationId) => ({ conversationId }));
-}
+type ConversationPageProps = { params: Promise<{ conversationId: string }> };
 
 export default async function ConversationPage({ params }: ConversationPageProps) {
   const { conversationId } = await params;
