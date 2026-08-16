@@ -17,26 +17,32 @@ export default function ConversationClient({ conversationId }: { conversationId:
 
   useEffect(() => {
     let mounted = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
     async function load() {
       const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) { setAllowed(false); return; }
+      if (!auth.user) { if (mounted) setAllowed(false); return; }
       if (mounted) setUserId(auth.user.id);
+
       const { data: membership } = await supabase.from("conversation_members").select("user_id").eq("conversation_id", conversationId).eq("user_id", auth.user.id).maybeSingle();
-      if (!membership) { setAllowed(false); return; }
+      if (!membership) { if (mounted) setAllowed(false); return; }
+
       const { data } = await supabase.from("messages").select("id,sender_id,body,status,created_at").eq("conversation_id", conversationId).order("created_at", { ascending: true });
       if (mounted) setMessages(data ?? []);
 
-      const channel = supabase.channel(`conversation:${conversationId}`)
+      channel = supabase.channel(`conversation:${conversationId}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` }, (payload) => {
           const incoming = payload.new as Message;
           setMessages((current) => current.some((item) => item.id === incoming.id) ? current : [...current, incoming]);
         })
         .subscribe();
-
-      return () => { supabase.removeChannel(channel); };
     }
-    const cleanupPromise = load();
-    return () => { mounted = false; void cleanupPromise; };
+
+    void load();
+    return () => {
+      mounted = false;
+      if (channel) void supabase.removeChannel(channel);
+    };
   }, [conversationId, supabase]);
 
   useEffect(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), [messages.length]);
