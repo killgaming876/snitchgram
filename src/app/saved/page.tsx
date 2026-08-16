@@ -1,0 +1,2 @@
+import { Post } from "@/components/social/DemoContent";
+export default function Saved(){return <div className="product-page"><div className="page-inner" style={{maxWidth:760}}><div className="page-heading"><div><div className="eyebrow"><span className="dot"/> private collection</div><h2>Saved.</h2></div><p>Your bookmarks stay yours. This surface is ready to read from the saved-post relation.</p></div><Post name="maya"/></div></div>}
