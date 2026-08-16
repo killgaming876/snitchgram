@@ -1,39 +1,6 @@
 {
-  "name": "snitchgram",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@supabase/ssr": "latest",
-    "@supabase/supabase-js": "latest",
-    "@react-three/drei": "latest",
-    "@react-three/fiber": "latest",
-    "@react-three/postprocessing": "latest",
-    "framer-motion": "latest",
-    "gsap": "latest",
-    "lenis": "latest",
-    "lucide-react": "latest",
-    "next": "latest",
-    "qrcode.react": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "three": "latest",
-    "zustand": "latest"
-  },
-  "devDependencies": {
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "autoprefixer": "latest",
-    "eslint": "latest",
-    "eslint-config-next": "latest",
-    "postcss": "latest",
-    "tailwindcss": "latest",
-    "typescript": "latest"
-  }
+  "name":"snitchgram","version":"0.1.0","private":true,
+  "scripts":{"dev":"next dev","build":"next build","start":"next start","lint":"next lint"},
+  "dependencies":{"@supabase/ssr":"latest","@supabase/supabase-js":"latest","@react-three/drei":"latest","@react-three/fiber":"latest","@react-three/postprocessing":"latest","framer-motion":"latest","gsap":"latest","lenis":"latest","lucide-react":"latest","next":"latest","qrcode.react":"latest","react":"latest","react-dom":"latest","three":"latest","zustand":"latest"},
+  "devDependencies":{"@types/node":"latest","@types/react":"latest","@types/react-dom":"latest","autoprefixer":"10.4.20","eslint":"latest","eslint-config-next":"latest","postcss":"8.4.49","tailwindcss":"3.4.17","typescript":"latest"}
 }
