@@ -1,63 +1,71 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Loader2, SmilePlus } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+
+type Message = { id: string; sender_id: string; body: string | null; status: string; created_at: string };
 
 export default function ConversationClient({ conversationId }: { conversationId: string }) {
-  const [messages, setMessages] = useState(["You found the new signal.", "This interface is wild."]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [allowed, setAllowed] = useState(true);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const supabase = createClient();
 
-  function send() {
-    const value = draft.trim();
-    if (!value) return;
-    setMessages((current) => [...current, value]);
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) { setAllowed(false); return; }
+      if (mounted) setUserId(auth.user.id);
+      const { data: membership } = await supabase.from("conversation_members").select("user_id").eq("conversation_id", conversationId).eq("user_id", auth.user.id).maybeSingle();
+      if (!membership) { setAllowed(false); return; }
+      const { data } = await supabase.from("messages").select("id,sender_id,body,status,created_at").eq("conversation_id", conversationId).order("created_at", { ascending: true });
+      if (mounted) setMessages(data ?? []);
+
+      const channel = supabase.channel(`conversation:${conversationId}`)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` }, (payload) => {
+          const incoming = payload.new as Message;
+          setMessages((current) => current.some((item) => item.id === incoming.id) ? current : [...current, incoming]);
+        })
+        .subscribe();
+
+      return () => { supabase.removeChannel(channel); };
+    }
+    const cleanupPromise = load();
+    return () => { mounted = false; void cleanupPromise; };
+  }, [conversationId, supabase]);
+
+  useEffect(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), [messages.length]);
+
+  async function send() {
+    const body = draft.trim();
+    if (!body || !userId || sending) return;
+    setSending(true);
     setDraft("");
+    const optimistic: Message = { id: `local-${Date.now()}`, sender_id: userId, body, status: "sending", created_at: new Date().toISOString() };
+    setMessages((current) => [...current, optimistic]);
+    const { data, error } = await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: userId, body, status: "sent" }).select("id,sender_id,body,status,created_at").single();
+    setMessages((current) => current.filter((item) => item.id !== optimistic.id).concat(data ? [data as Message] : []));
+    if (error) setDraft(body);
+    setSending(false);
   }
 
-  return (
-    <div className="product-page">
-      <div className="page-inner" style={{ maxWidth: 760 }}>
-        <div className="page-heading">
-          <div>
-            <div className="eyebrow">
-              <span className="dot" /> conversation / {conversationId}
-            </div>
-            <h2>Maya Chen.</h2>
-          </div>
-        </div>
-        <div className="side-panel">
-          <div style={{ minHeight: 420, display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 10 }}>
-            {messages.map((message, index) => (
-              <div
-                key={`${message}-${index}`}
-                style={{
-                  alignSelf: index % 2 ? "flex-end" : "flex-start",
-                  maxWidth: "75%",
-                  padding: "11px 14px",
-                  borderRadius: 16,
-                  background: index % 2 ? "#ffd43b" : "#1a1a18",
-                  color: index % 2 ? "#080806" : "#ddd",
-                  fontSize: 12,
-                }}
-              >
-                {message}
-              </div>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
-            <input
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") send();
-              }}
-              placeholder="Write a message…"
-            />
-            <button className="btn btn-primary" onClick={send}>
-              Send
-            </button>
-          </div>
-        </div>
-      </div>
+  if (!allowed) return <div className="product-page"><div className="page-inner"><div className="side-panel"><h2>Conversation unavailable.</h2><p>You are not a member of this conversation.</p><a href="/messages" className="btn btn-primary">Back to messages</a></div></div></div>;
+
+  return <div className="chat-page"><div className="chat-shell">
+    <header className="chat-header"><a href="/messages" className="chat-back">‹</a><div><b>Conversation</b><span>realtime channel</span></div><span className="chat-live"><i/> LIVE</span></header>
+    <div className="chat-messages">
+      {!messages.length && <div className="chat-empty"><div className="empty-orb"/><p>Say hello. This conversation is empty.</p></div>}
+      {messages.map((message) => {
+        const mine = message.sender_id === userId;
+        return <div className={`message-row ${mine ? "mine" : "theirs"}`} key={message.id}><div className="message-bubble"><span>{message.body}</span><small>{new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} {mine && <Check size={11}/>}</small></div></div>;
+      })}
+      <div ref={bottomRef}/>
     </div>
-  );
+    <div className="chat-composer"><button aria-label="Emoji"><SmilePlus size={19}/></button><textarea value={draft} onChange={(e)=>setDraft(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}} placeholder="Message…" rows={1}/><button className="send-pill" onClick={send} disabled={sending}>{sending ? <Loader2 className="spin" size={17}/> : "Send"}</button></div>
+  </div></div>;
 }
