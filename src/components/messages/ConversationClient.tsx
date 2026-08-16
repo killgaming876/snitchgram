@@ -5,6 +5,7 @@ import { Check, Loader2, SmilePlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Message = { id: string; sender_id: string; body: string | null; status: string; created_at: string };
+type RealtimeInsertPayload = { new: Record<string, unknown> };
 
 export default function ConversationClient({ conversationId }: { conversationId: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -28,11 +29,11 @@ export default function ConversationClient({ conversationId }: { conversationId:
       if (!membership) { if (mounted) setAllowed(false); return; }
 
       const { data } = await supabase.from("messages").select("id,sender_id,body,status,created_at").eq("conversation_id", conversationId).order("created_at", { ascending: true });
-      if (mounted) setMessages(data ?? []);
+      if (mounted) setMessages((data ?? []) as Message[]);
 
       channel = supabase.channel(`conversation:${conversationId}`)
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` }, (payload) => {
-          const incoming = payload.new as Message;
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` }, (payload: RealtimeInsertPayload) => {
+          const incoming = payload.new as unknown as Message;
           setMessages((current) => current.some((item) => item.id === incoming.id) ? current : [...current, incoming]);
         })
         .subscribe();
