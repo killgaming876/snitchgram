@@ -1,0 +1,4 @@
+"use client";
+import { useState } from "react";
+const rows=['Private account','Message permissions','Like notifications','Follower notifications','Active sessions'];
+export default function Settings(){const [on,setOn]=useState<Record<string,boolean>>({});return <div className="product-page"><div className="page-inner" style={{maxWidth:760}}><div className="page-heading"><div><div className="eyebrow"><span className="dot"/> control room</div><h2>Settings.</h2></div><p>Privacy, notifications and account controls live in one calm place.</p></div><div className="side-panel">{rows.map(r=><div key={r} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'15px 0',borderBottom:'1px solid var(--line)',fontSize:12}}><span>{r}</span><button onClick={()=>setOn({...on,[r]:!on[r]})} className="btn btn-ghost" style={{padding:'7px 11px'}}>{on[r]?'On':'Off'}</button></div>)}</div></div></div>}
